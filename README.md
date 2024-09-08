@@ -12,6 +12,7 @@ For this model, the input is `raw text` / `phonemes` , and output is `wavform`. 
 
 To address this, there is a generator (differentiable) which divided into 2 Componets.
 1. Aligner  -- It will gives a representation from input sequence which is aligned with the output wavform 
+![aligner](images/aligner.png)
 2. Decoder  -- upsample the representation from aligner to output a wavform.
 
 **Multi-Speaker Training**
