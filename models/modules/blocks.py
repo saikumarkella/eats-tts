@@ -18,6 +18,7 @@ class SpeakerEmbeddings(nn.Module):
     """
 
     def __init__(self, num_speakers, speaker_dims=128):
+        super(SpeakerEmbeddings, self).__init__()
         self.embeds = nn.Embedding(num_embeddings= num_speakers, embedding_dim=speaker_dims)
     
     def forward(self, speaker_ids):
@@ -100,8 +101,7 @@ class UnalignedTokenReprentation(nn.Module):
             self.sub_token_blocks.append(lay)
 
 
-    def forward(self, inputs, speaker_embeddings, noise):
-        ccbn_condition = torch.concatenate([speaker_embeddings, noise], dim=-1)
+    def forward(self, inputs, ccbn_condition):
         x = inputs
         for lay in self.sub_token_blocks:
             x = lay(x, ccbn_condition)
