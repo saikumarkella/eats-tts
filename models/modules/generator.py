@@ -33,20 +33,21 @@ class GBlock(nn.Module):
                  output_features = 256, 
                  input_features=256, 
                  dilation_rate = [1,2,4,8],
-                 upsample_rate = 1):
+                 upsample_rate = 1,
+                 output_padding=0):
         
         super().__init__()
         # residualBlock 1
         self.batchnorm1 = ConditionalBatchNorm(input_features)
         self.relu1 = nn.ReLU()
-        self.upsample1 = nn.ConvTranspose1d(in_channels=input_features, out_channels=input_features, kernel_size=kernel_size, stride=upsample_rate, padding="same")
+        self.upsample1 = nn.ConvTranspose1d(in_channels=input_features, out_channels=input_features, kernel_size=kernel_size, stride=upsample_rate, padding=1, output_padding=output_padding)
         self.conv1 = Conv1d(in_channels=input_features, out_channels=output_features, dialte_rate=dilation_rate[0], kernel_size=kernel_size)
         self.batchnorm2 = ConditionalBatchNorm(output_features)
         self.relu2 = nn.ReLU()
         self.conv2 = Conv1d(in_channels=output_features, out_channels=output_features, dialte_rate=dilation_rate[1])
 
         # bottleneck
-        self.upsample_BN= nn.ConvTranspose1d(in_channels=input_features, out_channels=input_features, kernel_size=kernel_size, stride=upsample_rate, padding="same")
+        self.upsample_BN= nn.ConvTranspose1d(in_channels=input_features, out_channels=input_features, kernel_size=kernel_size, stride=upsample_rate, padding=1, output_padding=output_padding)
         self.conv_BN = Conv1d(in_channels=input_features, out_channels=output_features, dialte_rate=1, kernel_size=kernel_size)
         
         # residualBlock 2
@@ -68,9 +69,11 @@ class GBlock(nn.Module):
     def forward(self, inputs , ccbn_condition):
         # residualBlock1 
         input_features = inputs
+        print("\t in : ", input_features.shape)
         x = self.batchnorm1(inputs, self.linear1(ccbn_condition))
         x = self.relu1(x)
         x = self.upsample1(x)
+        print("\t out : ", x.shape)
         x = self.conv1(x)
         x = self.batchnorm2(x, self.linear2(ccbn_condition))
         x = self.relu2(x)
@@ -107,16 +110,16 @@ class Generator(nn.Module):
             > 3-7 blocks : upsample with the rate of (2,2,2,3,5)
             > 3,6,7 blocks need to reduce the channel size by a factor of 2
     """
-    def __init__(self, in_channels=256, total_blocks = 7, upsample_rates = [1,1,2,2,2,3,5]):
+    def __init__(self, in_channels=256, upsample_rates = [1,1,2,2,2,3,5], output_paddings = [0,0,1,1,1,2,4]):
         super().__init__()
         self.gen_blocks = nn.ModuleList([
-            GBlock(input_features=in_channels, output_features=in_channels, upsample_rate=upsample_rates[0]),
-            GBlock(input_features=in_channels, output_features=in_channels, upsample_rate=upsample_rates[1]),
-            GBlock(input_features=in_channels, output_features=in_channels//2, upsample_rate=upsample_rates[2]),
-            GBlock(input_features=in_channels//2, output_features=in_channels//4, upsample_rate=upsample_rates[3]),
-            GBlock(input_features=in_channels//4, output_features=in_channels//8, upsample_rate=upsample_rates[4]),
-            GBlock(input_features=in_channels//8, output_features=in_channels//16, upsample_rate=upsample_rates[5]),
-            GBlock(input_features=in_channels//16, output_features=in_channels//16, upsample_rate=upsample_rates[6])
+            GBlock(input_features=in_channels, output_features=in_channels, upsample_rate=upsample_rates[0], output_padding = output_paddings[0]),
+            GBlock(input_features=in_channels, output_features=in_channels, upsample_rate=upsample_rates[1], output_padding = output_paddings[1]),
+            GBlock(input_features=in_channels, output_features=in_channels//2, upsample_rate=upsample_rates[2], output_padding = output_paddings[2]),
+            GBlock(input_features=in_channels//2, output_features=in_channels//4, upsample_rate=upsample_rates[3], output_padding = output_paddings[3]),
+            GBlock(input_features=in_channels//4, output_features=in_channels//8, upsample_rate=upsample_rates[4], output_padding = output_paddings[4]),
+            GBlock(input_features=in_channels//8, output_features=in_channels//16, upsample_rate=upsample_rates[5], output_padding = output_paddings[5]),
+            GBlock(input_features=in_channels//16, output_features=in_channels//16, upsample_rate=upsample_rates[6], output_padding = output_paddings[6])
         ])
         self.activation = nn.Tanh()
         
@@ -158,6 +161,8 @@ class Generator(nn.Module):
 #     print("|> shape of the input features : ", alined_features.shape)
 #     print("|> shape of the condition input features : ", ccbn_condition.shape)
 #     print("|> shape of the output features : ", outputs.shape)
+
+
 
 
 #----------------------------------------------------------------------------------
