@@ -10,7 +10,6 @@
         6. Based on the token center position we can interprete from token representation to a audio-aligned representation.
                 i. To get this ,compute the interpolation weights for the token representation.
                 ii. 
-
 """
 
 # modules

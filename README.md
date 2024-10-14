@@ -7,7 +7,7 @@ Components :
 - A Decoder to generate wav-form.
 
 
-## Method
+## Aligner
 For this model, the input is `raw text` / `phonemes` , and output is `wavform`. This task is so challenging because we don't know that which input token will corresponding to the which output token.
 
 To address this, there is a generator (differentiable) which divided into 2 Componets.
@@ -20,3 +20,5 @@ To address this, there is a generator (differentiable) which divided into 2 Comp
         - Speaker Conditional by feeding in a speaker embeddings along side a latent vector 'z' to enable training on a larger dataset
 
         
+## Generator ( GAN-TTS )
+Generator will develop using the generator and discriminators 
