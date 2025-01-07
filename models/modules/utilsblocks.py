@@ -14,7 +14,7 @@ class Conv1d(nn.Module):
         > So that it will preserve the longer dependencies.
 
     '''
-    def __init__(self, in_channels, out_channels, dialte_rate, kernel_size=3, padding="same"):
+    def __init__(self, in_channels, out_channels, dialte_rate=1, kernel_size=3, padding="same"):
         super().__init__()
         self.conv = nn.Conv1d(in_channels=in_channels,
                               out_channels=out_channels,
@@ -55,8 +55,10 @@ class ConditionalBatchNorm(nn.Module):
         self.bn = nn.BatchNorm1d(num_features=num_features)
         self.scale_transformer = spectral_norm(nn.Linear(in_features=num_features, out_features=num_features))
         self.shift_transformer = spectral_norm(nn.Linear(in_features=num_features, out_features=num_features))
+        self.extend_layer = spectral_norm(nn.Linear(in_features=256, out_features=num_features))
 
     def forward(self, inputs, concat_inputs):
+        concat_inputs = self.extend_layer(concat_inputs)
         norms_inputs = self.bn(inputs)
         scale = (1 + self.scale_transformer(concat_inputs))[:, :, None] # extending the dims for broadcast
         shift = self.shift_transformer(concat_inputs)[:, :, None] # extending the dims for broadcast

@@ -14,42 +14,52 @@ class GBlock(nn.Module):
     '''
         Discription : Generation will upsamples the audio aligned features to the wavform
     '''
-    def __init__(self):
+    def __init__(self,
+                 in_channels,
+                 out_channels,
+                 kernel_size,
+                 upsample_factor):
         super(GBlock, self).__init__()
 
+        # configurations
+        self.in_channels = in_channels # 
+        self.out_channels = out_channels # Maintain constant out-channels in entire network
+        self.kernel_size = kernel_size
+        self.upsample_factor = upsample_factor # upsample factor of the network.
+
         # stack 1
-        self.bn1 = ConditionalBatchNorm()
+        self.bn1 = ConditionalBatchNorm(num_features=in_channels)
         self.stack1 = nn.Sequential(
             nn.ReLU(),
-            Upsampling(),
-            Conv1d()    
+            Upsampling(in_channel=self.in_channels, out_channel=self.in_channels,kernal_size=self.kernel_size, stride=self.upsample_factor),
+            Conv1d(in_channels=self.in_channels, out_channels=out_channels, kernel_size=3)    
         )
 
         # stack 2
-        self.bn2 = ConditionalBatchNorm()
+        self.bn2 = ConditionalBatchNorm(num_features=out_channels)
         self.stack2 = nn.Sequential(
             nn.ReLU(),
-            Conv1d()
+            Conv1d(in_channels=self.out_channels, out_channels=self.out_channels, dialte_rate=2, kernel_size=3)
         )
 
         # residual stack
         self.residual_stack = nn.Sequential(
-            Upsampling(),
-            Conv1d()
+            Upsampling(in_channel=self.in_channels, out_channel=self.in_channels, kernal_size=self.kernel_size, stride=self.upsample_factor),
+            Conv1d(in_channels=self.in_channels, out_channels=self.out_channels, kernel_size=1)
         )
 
         # stack 3
-        self.bn3 = ConditionalBatchNorm()
+        self.bn3 = ConditionalBatchNorm(num_features=self.out_channels)
         self.stack3 = nn.Sequential(
             nn.ReLU(),
-            Conv1d()
+            Conv1d(in_channels=self.out_channels, out_channels=self.out_channels, dialte_rate=4, kernel_size=3)
         )
 
         # stack 4
-        self.bn4 = ConditionalBatchNorm()
+        self.bn4 = ConditionalBatchNorm(num_features=self.out_channels)
         self.stack4 = nn.Sequential(
             nn.ReLU(),
-            Conv1d()
+            Conv1d(in_channels=self.out_channels, out_channels=self.out_channels, dialte_rate=8, kernel_size=3)
         )
 
     def forward(self, inputs , ccbn_condition):
@@ -92,4 +102,25 @@ class Generator(nn.Module):
 
 
 
+# Sanity checking the Generator network for synthesizing audio or speech.
+if __name__ == "__main__":
+    # configurations
+    batch = 1
+    out_sequence = 400
+    features = 256
+    audio_aligned = torch.rand(size=(batch, features, out_sequence)) # input to generator
+    noise_embeddings = torch.rand(size=(batch, features//2))
+    speaker_emebddings = torch.rand(size=(batch, features//2))
+    ccbn_condition = torch.concatenate([noise_embeddings, speaker_emebddings], dim=1)
+
+    
+    # initializing block
+    in_channels = 256
+    out_channels = 128
+    kernel_size = 3
+    upsample_fator = 2
+    gen_block = GBlock(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, upsample_factor=upsample_fator)
+
+    output = gen_block(audio_aligned, ccbn_condition)
+    print(f"{output.shape = }")
 
