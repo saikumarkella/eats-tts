@@ -172,7 +172,7 @@ if __name__ == "__main__":
     
     # configurations
     input_features = 256
-    out_seq = 6000
+    out_seq = 200
     noise_dims = 128
     speaker_dims = 128
     batch_size = 1

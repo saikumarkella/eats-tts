@@ -128,18 +128,19 @@ class Aligner(nn.Module):
         # Computing the output grid for projecting the unaligned features to the aligned features.
         out_pos = torch.arange(start=0, end=self.output_seq_length, dtype=torch.float32)
         out_pos = torch.Tensor.repeat(out_pos, repeats=(x.shape[0],1))
+
         # Calculating the logits
         token_centers = token_centers[:,None, :]
         out_pos = out_pos[:,:, None]
         diff = token_centers - out_pos # dims = (N, 6000, 600) after difference
         logits = -(diff**2 / self.temperature)
+
         # need to calculate the masked logits  @ Actually weights need to find from the masked logits but here we are finding from the logits.
         weights = torch.nn.functional.softmax(logits, dim=-1, dtype=torch.float32)
 
-        # Batch-Wise Matrix Multiplication between @weights and @unaligned_features
         # Changing the shape of tensor using permut function.
         unaligned_features = torch.permute(unaligned_features, dims=(0,2,1))
-        aligned_features = torch.bmm(weights, unaligned_features)
+        aligned_features = torch.bmm(weights, unaligned_features) # Batch-Wise Matrix Multiplication between @weights and @unaligned_features
         return aligned_features, aligned_lengths
 
 

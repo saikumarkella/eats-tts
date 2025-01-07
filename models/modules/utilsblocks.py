@@ -64,3 +64,40 @@ class ConditionalBatchNorm(nn.Module):
         cbn = scale * norms_inputs + shift
         return cbn
 
+
+
+# customized upsampling layers
+class Upsampling(nn.Module):
+    """
+        upsampling input using the deconvolution or transposed convolution
+
+        Args:
+            in_channel (int) : Number of channels have in the input.
+            out_channel (int) : Number of desired channels in output.
+            kernel_size (int) : Size of the filter or kernel
+            stride (int) : Amount of neurons it need to move
+    """
+    def __init__(self,
+                 in_channel,
+                 out_channel,
+                 kernal_size,
+                 stride):
+        super(Upsampling, self).__init__()
+        # configurations
+        in_channel = in_channel
+        out_channel = out_channel
+        kernal_size = kernal_size
+        stride = stride
+        padding = (kernal_size - stride)//2   # padding cacluation , results of scaling factor of stride in output spatial dimensions
+
+        upsample = nn.ConvTranspose1d(in_channels=in_channel, 
+                                      out_channels=out_channel, 
+                                      kernel_size=kernal_size, 
+                                      stride=stride, 
+                                      padding=padding) # layers inititalization
+        nn.init.orthogonal_(upsample.weight) # weight initialization
+        self.upsample_norm = spectral_norm(upsample) # normalizing weights to stabilize GAN trainings
+                 
+    def forward(self, inputs):
+        return self.upsample_norm(inputs)
+    
