@@ -82,15 +82,14 @@ class Upsampling(nn.Module):
     def __init__(self,
                  in_channel,
                  out_channel,
-                 kernal_size,
                  stride):
         super(Upsampling, self).__init__()
         # configurations
         in_channel = in_channel
         out_channel = out_channel
-        kernal_size = kernal_size
+        kernal_size = stride*2
         stride = stride
-        padding = (kernal_size - stride)//2   # padding cacluation , results of scaling factor of stride in output spatial dimensions
+        padding = (stride)//2   # padding cacluation , results of scaling factor of stride in output spatial dimensions
 
         upsample = nn.ConvTranspose1d(in_channels=in_channel, 
                                       out_channels=out_channel, 

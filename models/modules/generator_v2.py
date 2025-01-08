@@ -5,8 +5,7 @@
 """
 # modules
 import torch.nn as nn
-from torch.nn.utils import spectral_norm
-from utilsblocks import Conv1d, Linear, ConditionalBatchNorm, Upsampling
+from utilsblocks import Conv1d, ConditionalBatchNorm, Upsampling
 import torch
 
 
@@ -31,7 +30,7 @@ class GBlock(nn.Module):
         self.bn1 = ConditionalBatchNorm(num_features=in_channels)
         self.stack1 = nn.Sequential(
             nn.ReLU(),
-            Upsampling(in_channel=self.in_channels, out_channel=self.in_channels,kernal_size=self.kernel_size, stride=self.upsample_factor),
+            Upsampling(in_channel=self.in_channels, out_channel=self.in_channels, stride=self.upsample_factor),
             Conv1d(in_channels=self.in_channels, out_channels=out_channels, kernel_size=3)    
         )
 
@@ -44,7 +43,7 @@ class GBlock(nn.Module):
 
         # residual stack
         self.residual_stack = nn.Sequential(
-            Upsampling(in_channel=self.in_channels, out_channel=self.in_channels, kernal_size=self.kernel_size, stride=self.upsample_factor),
+            Upsampling(in_channel=self.in_channels, out_channel=self.in_channels, stride=self.upsample_factor),
             Conv1d(in_channels=self.in_channels, out_channels=self.out_channels, kernel_size=1)
         )
 
@@ -123,4 +122,35 @@ if __name__ == "__main__":
 
     output = gen_block(audio_aligned, ccbn_condition)
     print(f"{output.shape = }")
+
+    '''
+        # Discriptions of models
+
+        > Mode of the Model ( training or evaluation)
+        > Number of layers
+        > Number of learnable and non-learnable parameters
+        > storing the state_dict.
+        > loading the state_dict.
+
+    '''
+    print("|> Mode of the model : ", gen_block.training)
+    print('|> Layers / modules in the Model : ')
+    num_layers = 0
+    for i in gen_block.children():
+        print(i)
+        num_layers+=1
+    print('\n|> Number of layers in the modules :: ', num_layers)
+    print("\n|> All the parameters in the Main Module :: ")
+    total_trainable_parameters = 0
+    total_non_trainable_parameters = 0
+    for i in gen_block.parameters():
+        print(i.requires_grad)
+        if(i.requires_grad):
+            total_trainable_parameters += i.numel()
+        else:
+            total_non_trainable_parameters += i.numel()
+
+    print("|> Total number of trainable Parameters :: ", total_trainable_parameters)
+    print("|> Total non-trainable parameters :: ", total_non_trainable_parameters)
+
 
