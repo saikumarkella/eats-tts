@@ -7,7 +7,10 @@
 import torch.nn as nn
 from utilsblocks import Conv1d, ConditionalBatchNorm, Upsampling
 import torch
+from pathlib import Path
 
+# writing the summary in the tensorboard
+from torch.utils.tensorboard import SummaryWriter
 
 class GBlock(nn.Module):
     '''
@@ -16,14 +19,12 @@ class GBlock(nn.Module):
     def __init__(self,
                  in_channels,
                  out_channels,
-                 kernel_size,
                  upsample_factor):
         super(GBlock, self).__init__()
 
         # configurations
         self.in_channels = in_channels # 
         self.out_channels = out_channels # Maintain constant out-channels in entire network
-        self.kernel_size = kernel_size
         self.upsample_factor = upsample_factor # upsample factor of the network.
 
         # stack 1
@@ -88,17 +89,33 @@ class GBlock(nn.Module):
 
 class Generator(nn.Module):
     '''
-        Generator which consits of the GBlocks (For generating the modules)
+        A Generator which will upsample from audio aligned representation to the wavform. 
+        It is a sequence of Generation Blocks
 
-        Generatie
+        Args:
+            output_dims (list) :  A list of outdims of all the blocks
+            upsample_factor (list) : A upsample factor of all layers
 
     '''
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, 
+                number_layers = 7,
+                output_dims = [256, 256, 128, 64, 32, 16, 8, 1],
+                upsample_factors = [1,1,2,2,2,3,5]):
+        super(Generator, self).__init__()
+        
+        # initializing all the layers
+        self.number_layers = number_layers
+        self.output_dims = output_dims
+        self.upsample_factors = upsample_factors
+        self.Gblocks = nn.ModuleList([GBlock(in_channels=self.output_dims[i], out_channels=self.output_dims[i+1], upsample_factor=self.upsample_factors[i]) for i in range(number_layers)])
 
-    def forward(self):
-        pass
+    def forward(self, inputs, ccbn_condition):
+        x = inputs
+        for block in self.Gblocks:
+            x = block(x, ccbn_condition)
+        return x
 
+        
 
 
 # Sanity checking the Generator network for synthesizing audio or speech.
@@ -116,9 +133,9 @@ if __name__ == "__main__":
     # initializing block
     in_channels = 256
     out_channels = 128
-    kernel_size = 3
     upsample_fator = 2
-    gen_block = GBlock(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, upsample_factor=upsample_fator)
+    # gen_block = GBlock(in_channels=in_channels, out_channels=out_channels, upsample_factor=upsample_fator)
+    gen_block = Generator()
 
     output = gen_block(audio_aligned, ccbn_condition)
     print(f"{output.shape = }")
@@ -144,7 +161,6 @@ if __name__ == "__main__":
     total_trainable_parameters = 0
     total_non_trainable_parameters = 0
     for i in gen_block.parameters():
-        print(i.requires_grad)
         if(i.requires_grad):
             total_trainable_parameters += i.numel()
         else:
@@ -153,4 +169,26 @@ if __name__ == "__main__":
     print("|> Total number of trainable Parameters :: ", total_trainable_parameters)
     print("|> Total non-trainable parameters :: ", total_non_trainable_parameters)
 
+    # tensorboard configurations
+    logs_dir = Path(__file__).parent.parent/"logs"/"project1"
+
+
+    '''
+        TensorBoard Loggings:
+        ---------------------
+
+        1. Initializing the tensorboard summary writer
+        2. Logging the model architecture.
+        3. Logging the scalar or audios or images.
+        4. Logging the pytorch profiler
+    '''
+
+    # step 1: initialize the tensorboard summary writer
+    writer = SummaryWriter(log_dir=logs_dir)
+
+    # step 2: Inspecting the network
+    writer.add_graph(model=gen_block, input_to_model=(audio_aligned, ccbn_condition))
+
+    # step 3: Closing the writer 
+    writer.close()
 
