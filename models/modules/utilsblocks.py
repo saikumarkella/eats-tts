@@ -102,3 +102,24 @@ class Upsampling(nn.Module):
     def forward(self, inputs):
         return self.upsample_norm(inputs)
     
+
+class DownSampling(nn.Module):
+    '''
+        Mainly useful in the discriminator.
+        It will downsample from higher spatial dimensions to Lower Dimensions.
+    '''
+    def __init__(self,
+                 in_channels,
+                 out_channels,
+                 downsample_factor
+                 ):
+        super(DownSampling, self).__init__()
+        in_channels = in_channels
+        out_channels = out_channels
+        kernel_size = 3
+        stride = downsample_factor
+        padding = kernel_size // 2
+        self.downsample = nn.Conv1d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, stride=stride, padding=padding)
+
+    def forward(self, inputs):
+        return self.downsample(inputs)
