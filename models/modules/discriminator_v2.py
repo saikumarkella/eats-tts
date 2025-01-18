@@ -72,6 +72,7 @@ class UnConditionalDiscriminator(nn.Module):
         super(UnConditionalDiscriminator, self).__init__()
         self.out_channels = out_channels
         self.downsample_factors = downsample_factors
+        self.windows = [240, 480, 960, 1920, 3600]
 
         self.block1 = Dblock(in_channels=2, out_channels=64, downsample_factor=1)
         self.block2 = Dblock(in_channels=64, out_channels=self.out_channels[0], downsample_factor=self.downsample_factors[0])
@@ -89,6 +90,34 @@ class UnConditionalDiscriminator(nn.Module):
         x = self.block5(x)
         return x
 
+class MultipleWindowDiscriminator(nn.Module):
+    '''
+        Multiple Window Discriminators
+          > creating the random window samples discriminators.
+    '''
+    def __init__(self):
+        super(MultipleWindowDiscriminator, self).__init__()
+        self.discriminators = nn.ModuleList([UnConditionalDiscriminator() for i in range(5)])
+
+    def forward(self, sample):
+        # sampling different resolutions from the given input. i.e creating different batchs
+        resolution_sample =  []
+        # getting the random index from the samples
+        random_index = torch.randint(low=0, high=sample.size(-1)-3600, size=(5, sample.size(0)))
+
+        # now slicing the samples
+        window_sizes = [240, 480, 960, 1920, 3600] # getting the window sizes 
+        for window, index in zip(window_sizes, random_index):
+            tensors = [tens[:, i:i+window] for tens, i in zip(sample, index)]
+            resolution_sample.append(torch.concatenate(tensors, dim=0))
+    
+        discriminator_outputs = []
+        for res_sample, discriminator in zip(resolution_sample, self.discriminators):
+            out = discriminator(res_sample)
+            discriminator_outputs.append(out)
+        return discriminator_outputs
+            
+            
 
 
 # ---- Sanity-checking-codes ----------------
@@ -96,7 +125,7 @@ if __name__ == "__main__":
     
     # configuration of the network or inputs
     batch_size = 2
-    window_size = 480
+    window_size = 24000
     channels = 1
 
     # size of audio input
@@ -112,6 +141,14 @@ if __name__ == "__main__":
 
 
     # Sanity-checking the whole discriminator 
-    UnCond_Disc = UnConditionalDiscriminator()
-    unconditional_outpu = UnCond_Disc(window_input)
-    print('The shape of the unconditional discriminator output :: ', unconditional_outpu.shape)
+    # UnCond_Disc = UnConditionalDiscriminator()
+    # unconditional_outpu = UnCond_Disc(window_input)
+    # print('The shape of the unconditional discriminator output :: ', unconditional_outpu.shape)
+
+    # ---- Sanity checking ( Multi-Window Discriminator ) -------
+    mwds = MultipleWindowDiscriminator()
+    outs = mwds(window_input)
+    
+    # getting all the shapes of the outputs
+    for i in outs:
+        print(i.shape)
